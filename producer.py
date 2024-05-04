@@ -1,0 +1,29 @@
+import pika
+import json
+import sqlite3
+
+def fetch_switch_ips():
+    conn = sqlite3.connect('switches.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT ip_address FROM switches")
+    switch_ips = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return switch_ips
+
+def main():
+    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    channel = connection.channel()
+    channel.queue_declare(queue='task_queue')
+
+    switch_ips = fetch_switch_ips()
+    for ip in switch_ips:
+        task = {"task": "collect_switch_temperature", "ip": ip}
+        channel.basic_publish(exchange='',
+                              routing_key='task_queue',
+                              body=json.dumps(task))
+        print(f" [x] Sent task to collect temperature for switch at {ip}")
+
+    connection.close()
+
+if __name__ == '__main__':
+    main()
