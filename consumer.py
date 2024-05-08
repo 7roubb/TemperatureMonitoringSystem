@@ -1,5 +1,8 @@
 import pika
 import json
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 import time
@@ -26,6 +29,34 @@ def write_to_influxdb(switch_ip, temperature):
     
     write_api.write(bucket=bucket, org=org, record=point)
     client.close()
+    
+    
+def sendEmail():
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587 
+    sender_email = "snmpproject2@outlook.com"
+    receiver_email = "7roubb@gmail.com"
+    username = "snmpproject2@outlook.com"
+    password = "SNMPRabbit123@@"
+    subject = "Test Email"
+    body = "This is a test email sent from a Python script."
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(username, password)
+            server.sendmail(sender_email, receiver_email, msg.as_string())
+        print("Email sent successfully!")
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"SMTP Authentication Error: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    
 
 def callback(ch, method, properties, body):
     task = json.loads(body)
