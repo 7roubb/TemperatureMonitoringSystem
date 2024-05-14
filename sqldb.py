@@ -7,20 +7,22 @@ def create_database():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS switches (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ip_address TEXT NOT NULL
+        ip_address TEXT NOT NULL,
+        community_string TEXT NOT NULL,
+        oid TEXT NOT NULL
     )
     ''')
-
+    
     # List of IP addresses to add
     ip_addresses = [
-        '192.168.1.1',
-        '192.168.1.2',
-        '192.168.1.3',
-        '192.168.1.4',
-        '192.168.1.5'
+        ['127.0.0.5','Cisco3750', '1.3.6.1.4.1.9.9.91.1.1.1.1.4.1062'],
+        ['127.0.0.6','Cisco3750', '1.3.6.1.4.1.9.9.91.1.1.1.1.4.1062'],
+        ['127.0.0.7','Cisco3750', '1.3.6.1.4.1.9.9.91.1.1.1.1.4.1062'],
+        ['127.0.0.8','Cisco3750', '1.3.6.1.4.1.9.9.91.1.1.1.1.4.1062'],
+        ['127.0.0.9','Cisco3750', '1.3.6.1.4.1.9.9.91.1.1.1.1.4.1062'],
     ]
 
-    cursor.executemany('INSERT INTO switches (ip_address) VALUES (?)', [(ip,) for ip in ip_addresses])
+    cursor.executemany('INSERT INTO switches (ip_address,community_string,oid) VALUES (?,?,?)', [(ip,community_string,oid) for ip, community_string, oid in ip_addresses])
 
     conn.commit()
     conn.close()

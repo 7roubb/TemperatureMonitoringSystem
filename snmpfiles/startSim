@@ -1,0 +1,2 @@
+>/home/snmpsim/snmpsimd.log
+snmpsimd.py --agent-udpv4-endpoint=127.0.0.1 --process-user=snmpsim --process-group=snmpsim --logging-method=file:/home/snmpsim/snmpsimd.log

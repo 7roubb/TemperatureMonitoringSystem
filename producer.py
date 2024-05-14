@@ -3,12 +3,12 @@ import json
 import sqlite3
 
 def fetch_switch_ips():
-    conn = sqlite3.connect('switches.db')
+    conn = sqlite3.connect('switche.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT ip_address FROM switches")
-    switch_ips = [row[0] for row in cursor.fetchall()]
+    cursor.execute("SELECT * FROM switches")
+    switch_details = [[row[1], row[2], row[3]] for row in cursor.fetchall()]
     conn.close()
-    return switch_ips
+    return switch_details
 
 def main():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -16,8 +16,11 @@ def main():
     channel.queue_declare(queue='task_queue')
 
     switch_ips = fetch_switch_ips()
-    for ip in switch_ips:
-        task = {"task": "collect_switch_temperature", "ip": ip}
+    print(switch_ips)
+
+    for ip, comm, oid in switch_ips:
+        print(ip)
+        task = {"task": "collect_switch_temperature", "ip": ip, 'comm': comm, 'oid': oid}
         channel.basic_publish(exchange='',
                               routing_key='task_queue',
                               body=json.dumps(task))

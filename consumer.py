@@ -6,10 +6,13 @@ from email.mime.text import MIMEText
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 import time
-def collect_switch_temperature(ip_address):
-    
-    import random
-    return random.randint(20, 40)
+import subprocess
+def collect_switch_temperature(ip_address, comm, oid):
+    cmd = subprocess.run(['snmpget -v 2c -c {} {}:1611 {}'.format(comm, ip_address, oid)],capture_output=True, shell=True)
+    after_exe:str = str(cmd.stdout)
+    temp = int(after_exe.split('INTEGER: ')[1].split('\\n')[0])
+    print('temp =',temp)
+
 
 bucket = "Project2"
 org = "PPU"
@@ -62,7 +65,7 @@ def callback(ch, method, properties, body):
     task = json.loads(body)
     if task['task'] == 'collect_switch_temperature':
         print(f" [x] Received task to collect temperature for switch at {task['ip']}")
-        temperature = collect_switch_temperature(task['ip'])
+        temperature = collect_switch_temperature(task['ip'], task['comm'], task['oid'])
         if temperature:
             print(f" [x] Temperature for switch {task['ip']}: {temperature}°C")
             write_to_influxdb(task['ip'], temperature)
