@@ -7,18 +7,25 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 import time
 import subprocess
-def collect_switch_temperature(ip_address, comm, oid):
+import random 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+Email:str= os.getenv('EMAIL')
+Password:str= os.getenv('PASSWORD')
+
+def collect_switch_temperature(ip_address:str, comm:str, oid:str):
     cmd = subprocess.run(['snmpget -v 2c -c {} {}:1611 {}'.format(comm, ip_address, oid)],capture_output=True, shell=True)
     after_exe:str = str(cmd.stdout)
     temp = int(after_exe.split('INTEGER: ')[1].split('\\n')[0])
-    print('temp =',temp)
-
+    return random.randrange(temp - 40, temp + 40)
 
 bucket = "Project2"
 org = "PPU"
 token = "LmTPOiQdAzFz9FtJkgQvyUqObRdLrPRegL8lSzOp5zob1zk9IpnykmVJbwC-IOXqSd22pLTdMiFms4QOIKli7g=="
 url = "https://us-east-1-1.aws.cloud2.influxdata.com/"
-
 def write_to_influxdb(switch_ip, temperature):
     client = InfluxDBClient(url=url, token=token, org=org)
     write_api = client.write_api(write_options=SYNCHRONOUS)
@@ -29,20 +36,18 @@ def write_to_influxdb(switch_ip, temperature):
         .field("temperature", float(temperature))
         .time(time.time_ns(), WritePrecision.NS)
     )
-    
     write_api.write(bucket=bucket, org=org, record=point)
     client.close()
     
-    
-def sendEmail():
+def sendEmail(ip, temp):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587 
-    sender_email = "snmpproject2@outlook.com"
+    sender_email = Email
     receiver_email = "7roubb@gmail.com"
-    username = "snmpproject2@outlook.com"
-    password = "SNMPRabbit123@@"
-    subject = "Test Email"
-    body = "This is a test email sent from a Python script."
+    username = Email
+    password = Password
+    subject = "Tempreture Alert"
+    body = "The switch tempreture with ip {} has became {}.".format(ip, temp)
     msg = MIMEMultipart()
     msg["From"] = sender_email
     msg["To"] = receiver_email
@@ -53,7 +58,7 @@ def sendEmail():
             server.starttls()
             server.login(username, password)
             server.sendmail(sender_email, receiver_email, msg.as_string())
-        print("Email sent successfully!")
+        print(" [-] Email sent successfully!")
     except smtplib.SMTPAuthenticationError as e:
         print(f"SMTP Authentication Error: {e}")
     except Exception as e:
@@ -68,8 +73,11 @@ def callback(ch, method, properties, body):
         temperature = collect_switch_temperature(task['ip'], task['comm'], task['oid'])
         if temperature:
             print(f" [x] Temperature for switch {task['ip']}: {temperature}°C")
+            if(temperature > 110):
+                sendEmail(task['ip'], temperature)
             write_to_influxdb(task['ip'], temperature)
         ch.basic_ack(delivery_tag=method.delivery_tag)
+        print('---------------------------')
 
 def main():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
